@@ -1,36 +1,165 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PassMedics - Medical Quiz Platform
 
-## Getting Started
+PassMedics is a modern, interactive medical quiz platform designed to help medical students test and improve their knowledge through adaptive quizzes and clinical cases.
 
-First, run the development server:
+## 🌟 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Quiz Experience
+- **Adaptive Questions**: Questions tailored to user performance and learning needs
+- **Real-time Progress Tracking**: Visual progress bar and timer for each question
+- **Topic-based Learning**: Questions categorized by medical specialties
+- **Difficulty Levels**: Questions marked as Easy, Medium, or Hard
+- **Detailed Explanations**: Comprehensive explanations for each answer
+- **Time Management**: 60-second timer per question to simulate exam conditions
+- **Interactive UI**: Clean, accessible interface with clear question and answer display
+
+### Results Analysis
+- **Overall Performance**: Visual score representation with circular progress
+- **Topic Analysis**: Breakdown of performance by medical categories
+- **Detailed Review**: Question-by-question review with correct answers and explanations
+- **Performance Indicators**: Color-coded performance metrics (green ≥70%, yellow ≥50%, red <50%)
+- **Flashcard Integration**: Option to convert questions to flashcards for further study
+
+## 🏗️ Technical Architecture
+
+### Frontend Framework
+- Next.js 14 (React Framework)
+- TypeScript for type safety
+- Tailwind CSS for styling
+
+### State Management
+- React Context API for quiz state management
+- Custom hooks for encapsulated logic
+- Local state for UI components
+
+### Components Structure
+```
+components/
+  ├── ui/
+  │   ├── button.tsx
+  │   ├── badge.tsx
+  │   └── card.tsx
+app/
+  ├── quiz/
+  │   ├── page.tsx (Quiz Home)
+  │   ├── [id]/page.tsx (Quiz Experience)
+  │   └── results/page.tsx (Results Page)
+context/
+  └── QuizContext.tsx
+data/
+  └── quizzes.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 💡 Implementation Details
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Quiz State Management
+The application uses a custom Context (`QuizContext.tsx`) to manage the quiz state:
+- Questions array
+- User answers
+- Current question index
+- Completion status
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Actions available:
+- SET_QUESTIONS
+- ANSWER_QUESTION
+- NEXT_QUESTION
+- COMPLETE_QUIZ
+- RESET_QUIZ
 
-## Learn More
+### Data Structure
+Questions are structured with:
+```typescript
+interface QuizQuestion {
+  id: string;
+  category: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  question: string;
+  options: {
+    id: string;
+    text: string;
+  }[];
+  correctAnswer: string;
+  explanation: string;
+}
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Page Flow
+1. **Home Page** (`app/page.tsx`)
+   - Platform introduction
+   - Features overview
+   - Navigation to quiz or clinical cases
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Quiz Home** (`app/quiz/page.tsx`)
+   - Quiz features explanation
+   - Start quiz button
+   - Clinical cases option
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. **Quiz Experience** (`app/quiz/[id]/page.tsx`)
+   - Question display
+   - Timer
+   - Progress tracking
+   - Answer selection
+   - Navigation controls
 
-## Deploy on Vercel
+4. **Results Page** (`app/quiz/results/page.tsx`)
+   - Overall score
+   - Topic performance analysis
+   - Detailed question review
+   - Options to retry or return home
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 UI/UX Features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Design System
+- Custom color scheme with CSS variables
+- Responsive design for all screen sizes
+- Consistent spacing and typography
+- Interactive elements with hover and focus states
+- Loading and error states for better user experience
+
+### Components
+- **Button**: Multiple variants (default, outline, ghost)
+- **Badge**: For category and difficulty indicators
+- **Card**: For content organization
+- **Progress Bar**: For quiz progress
+- **Timer**: Visual countdown
+- **Charts**: For performance visualization
+
+## 🚀 Getting Started
+
+1. **Prerequisites**
+   - Node.js (v14 or higher)
+   - npm or yarn
+
+2. **Installation**
+   ```bash
+   git clone <repository-url>
+   cd passmedics
+   npm install
+   ```
+
+3. **Development**
+   ```bash
+   npm run dev
+   ```
+
+4. **Build**
+   ```bash
+   npm run build
+   ```
+
+## 🔄 Future Improvements
+
+1. **Features**
+   - User authentication and profiles
+   - Progress tracking across multiple quizzes
+   - More interactive clinical cases
+   - Spaced repetition system
+   - Peer comparison statistics
+
+2. **Technical**
+   - API integration for dynamic questions
+   - Performance optimization
+   - Offline support
+   - Analytics integration
+   - Testing implementation
+
