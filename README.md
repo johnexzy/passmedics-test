@@ -202,7 +202,8 @@ For detailed information about application flow, routing, and page structure, pl
      - Time taken
      - Stage-by-stage performance
 
-## 📧 Support
+## 📧 Author
 
-For support, please email support@passmedics.com or open an issue in this repository.
+This project is a test project written by [@johnexzy](https://github.com/johnexzy).
+
 
