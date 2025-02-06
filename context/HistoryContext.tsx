@@ -15,6 +15,15 @@ export interface AttemptResult {
     difficulty?: string;
     totalQuestions?: number;
     correctAnswers?: number;
+    questions?: Array<{
+      category: string;
+      difficulty: string;
+      question: string;
+      selectedAnswer: string;
+      correctAnswer: string;
+      explanation: string;
+      isCorrect: boolean;
+    }>;
   };
 }
 
@@ -59,27 +68,47 @@ const HistoryContext = createContext<{
 } | null>(null);
 
 export function HistoryProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(historyReducer, initialState);
-
-  // Load state from localStorage on mount
-  useEffect(() => {
-    const savedState = localStorage.getItem('historyState');
-    if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState, (key, value) => {
-          if (key === 'timestamp') return new Date(value);
-          return value;
-        });
-        dispatch({ type: 'LOAD_STATE', payload: parsedState });
-      } catch (error) {
-        console.error('Failed to load history state:', error);
+  // Initialize state from localStorage if available
+  const [state, dispatch] = useReducer(historyReducer, initialState, () => {
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('historyState');
+      if (savedState) {
+        try {
+          const parsedState = JSON.parse(savedState);
+          // Convert string dates back to Date objects
+          const stateWithDates = {
+            ...parsedState,
+            attempts: parsedState.attempts.map((attempt: AttemptResult & { timestamp: string }) => ({
+              ...attempt,
+              timestamp: new Date(attempt.timestamp)
+            }))
+          };
+          return stateWithDates;
+        } catch (error) {
+          console.error('Failed to parse saved state:', error);
+          return initialState;
+        }
       }
     }
-  }, []);
+    return initialState;
+  });
 
   // Save state to localStorage on changes
   useEffect(() => {
-    localStorage.setItem('historyState', JSON.stringify(state));
+    if (state !== initialState) {
+      try {
+        const stateToSave = {
+          ...state,
+          attempts: state.attempts.map(attempt => ({
+            ...attempt,
+            timestamp: attempt.timestamp.toISOString()
+          }))
+        };
+        localStorage.setItem('historyState', JSON.stringify(stateToSave));
+      } catch (error) {
+        console.error('Failed to save history state:', error);
+      }
+    }
   }, [state]);
 
   return (

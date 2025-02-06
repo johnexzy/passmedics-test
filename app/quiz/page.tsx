@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Header from "@/components/Header";
 
 export default function QuizPage() {
   const router = useRouter();
@@ -19,9 +19,7 @@ export default function QuizPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="flex justify-between items-center p-4">
-        <Link href="/" className="text-xl font-bold text-primary">PassMedics</Link>
-      </header>
+      <Header />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-12">

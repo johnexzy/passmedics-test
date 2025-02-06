@@ -109,5 +109,168 @@ export const clinicalCases: ClinicalCase[] = [
         correctActionIds: ["1", "2"]
       }
     ]
+  },
+  {
+    id: "CASE003",
+    title: "Acute Abdominal Pain",
+    category: "Emergency Medicine",
+    difficulty: "Medium",
+    description: "Severe right lower quadrant pain with nausea for 12 hours",
+    patientInfo: {
+      age: 22,
+      gender: "female",
+      chiefComplaint: "Severe right lower quadrant pain with nausea",
+      pastMedicalHistory: ["None significant"],
+    },
+    vitalSigns: {
+      temperature: "38.2°C",
+      heartRate: "98 bpm",
+      bloodPressure: "125/75 mmHg",
+      respiratoryRate: "18/min",
+    },
+    stages: [
+      {
+        question: "What is your initial approach to this patient?",
+        actions: [
+          {
+            type: "Examination",
+            text: "Perform focused abdominal examination",
+            isCorrect: true,
+            feedback: "Correct! Physical examination is crucial for diagnosing appendicitis.",
+            order: 1
+          },
+          {
+            type: "Investigation",
+            text: "Order CBC and CRP",
+            isCorrect: true,
+            feedback: "Good choice. These tests help confirm inflammation.",
+            order: 2
+          },
+          {
+            type: "Investigation",
+            text: "Request abdominal ultrasound",
+            isCorrect: true,
+            feedback: "Appropriate imaging choice for young female patient.",
+            order: 3
+          },
+          {
+            type: "Treatment",
+            text: "Give immediate antibiotics",
+            isCorrect: false,
+            feedback: "Premature. Diagnosis needs to be confirmed first.",
+          }
+        ],
+        correctActionIds: ["1", "2", "3"]
+      }
+    ]
+  },
+  {
+    id: "CASE004",
+    title: "Postpartum Hemorrhage",
+    category: "Obstetrics And Gynecology",
+    difficulty: "Hard",
+    description: "Excessive bleeding after normal vaginal delivery",
+    patientInfo: {
+      age: 28,
+      gender: "female",
+      chiefComplaint: "Heavy bleeding after delivery",
+      pastMedicalHistory: ["G2P2", "Previous normal delivery"],
+    },
+    vitalSigns: {
+      temperature: "36.8°C",
+      heartRate: "120 bpm",
+      bloodPressure: "90/60 mmHg",
+      respiratoryRate: "22/min",
+    },
+    stages: [
+      {
+        question: "The patient has lost approximately 1L of blood. What are your immediate actions?",
+        actions: [
+          {
+            type: "Treatment",
+            text: "Start IV fluids and cross-match blood",
+            isCorrect: true,
+            feedback: "Critical first step for volume replacement.",
+            order: 1
+          },
+          {
+            type: "Treatment",
+            text: "Administer oxytocin",
+            isCorrect: true,
+            feedback: "First-line uterotonic for PPH.",
+            order: 2
+          },
+          {
+            type: "Examination",
+            text: "Perform uterine massage",
+            isCorrect: true,
+            feedback: "Important mechanical intervention for uterine atony.",
+            order: 3
+          },
+          {
+            type: "Investigation",
+            text: "Wait for coagulation results",
+            isCorrect: false,
+            feedback: "Too passive. Immediate action needed.",
+          }
+        ],
+        correctActionIds: ["1", "2", "3"]
+      }
+    ]
+  },
+  {
+    id: "CASE005",
+    title: "Diabetic Ketoacidosis",
+    category: "Internal Medicine",
+    difficulty: "Hard",
+    description: "Type 1 diabetic with vomiting and altered mental status",
+    patientInfo: {
+      age: 19,
+      gender: "male",
+      chiefComplaint: "Vomiting and confusion",
+      pastMedicalHistory: ["Type 1 Diabetes", "Previous DKA episode"],
+    },
+    vitalSigns: {
+      temperature: "37.5°C",
+      heartRate: "125 bpm",
+      bloodPressure: "95/65 mmHg",
+      respiratoryRate: "28/min",
+      oxygenSaturation: "98%",
+    },
+    stages: [
+      {
+        question: "The patient's blood glucose is 32 mmol/L. What is your management priority?",
+        actions: [
+          {
+            type: "Treatment",
+            text: "Start IV fluid resuscitation",
+            isCorrect: true,
+            feedback: "Correct! Fluid resuscitation is the first priority in DKA.",
+            order: 1
+          },
+          {
+            type: "Investigation",
+            text: "Check blood ketones and gases",
+            isCorrect: true,
+            feedback: "Essential for diagnosis and monitoring.",
+            order: 2
+          },
+          {
+            type: "Treatment",
+            text: "Begin insulin infusion",
+            isCorrect: true,
+            feedback: "Important, but after initial fluid resuscitation.",
+            order: 3
+          },
+          {
+            type: "Treatment",
+            text: "Give oral glucose",
+            isCorrect: false,
+            feedback: "Inappropriate. Patient needs IV management.",
+          }
+        ],
+        correctActionIds: ["1", "2", "3"]
+      }
+    ]
   }
 ]; 

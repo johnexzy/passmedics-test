@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { useFlashcards } from '@/context/FlashcardContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import Header from '@/components/Header';
 
 export default function FlashcardsPage() {
   const { state, dispatch } = useFlashcards();
@@ -32,9 +33,7 @@ export default function FlashcardsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="flex justify-between items-center p-4">
-        <Link href="/" className="text-xl font-bold text-primary">PassMedics</Link>
-      </header>
+      <Header />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">

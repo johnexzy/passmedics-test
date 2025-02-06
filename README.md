@@ -5,25 +5,86 @@ PassMedics is a modern, interactive medical quiz platform designed to help medic
 ## 🌟 Features
 
 ### Quiz Experience
-- **Adaptive Questions**: Questions tailored to user performance and learning needs
-- **Real-time Progress Tracking**: Visual progress bar and timer for each question
-- **Topic-based Learning**: Questions categorized by medical specialties
-- **Difficulty Levels**: Questions marked as Easy, Medium, or Hard
-- **Detailed Explanations**: Comprehensive explanations for each answer
-- **Time Management**: 60-second timer per question to simulate exam conditions
-- **Interactive UI**: Clean, accessible interface with clear question and answer display
+- Adaptive Questions
+- Real-time Progress Tracking
+- Topic-based Learning
+- Difficulty Levels
+- Detailed Explanations
+- Time Management
+- Interactive UI
 
 ### Results Analysis
-- **Overall Performance**: Visual score representation with circular progress
-- **Topic Analysis**: Breakdown of performance by medical categories
-- **Detailed Review**: Question-by-question review with correct answers and explanations
-- **Performance Indicators**: Color-coded performance metrics (green ≥70%, yellow ≥50%, red <50%)
-- **Flashcard Integration**: Option to convert questions to flashcards for further study
+- Overall Performance
+- Topic Analysis
+- Detailed Review
+- Performance Indicators
+- Flashcard Integration
+
+### Clinical Case Simulator
+- **Interactive Case Studies**: Practice with realistic patient scenarios
+- **Step-by-Step Approach**: Work through cases stage by stage
+- **Action Sequencing**: Select and order clinical actions (examinations, treatments, investigations)
+- **Real-time Feedback**: Get immediate feedback on your clinical decisions
+- **Progress Tracking**: Monitor your performance with stage-by-stage scoring
+- **Retry Functionality**: Practice stages multiple times to improve your approach
+
+## 🚀 Getting Started
+
+1. **Prerequisites**
+   - Node.js (v14 or higher)
+   - npm or yarn
+
+2. **Installation**
+   ```bash
+   git clone <repository-url>
+   cd passmedics
+   npm install
+   # or
+   yarn install
+   ```
+
+3. **Development**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. **Build**
+   ```bash
+   npm run build
+   # or
+   yarn build
+   ```
+
+## 📚 Documentation
+
+For detailed technical documentation, including:
+- System Architecture
+- Data Flow
+- State Management
+- Feature Modules
+- Performance Optimization
+- Error Handling
+
+Please refer to [technical-documentation.md](./technical-documentation.md)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🏗️ Technical Architecture
 
 ### Frontend Framework
-- Next.js 14 (React Framework)
+- Next.js 15 (React Framework)
 - TypeScript for type safety
 - Tailwind CSS for styling
 
@@ -83,29 +144,7 @@ interface QuizQuestion {
 }
 ```
 
-### Page Flow
-1. **Home Page** (`app/page.tsx`)
-   - Platform introduction
-   - Features overview
-   - Navigation to quiz or clinical cases
-
-2. **Quiz Home** (`app/quiz/page.tsx`)
-   - Quiz features explanation
-   - Start quiz button
-   - Clinical cases option
-
-3. **Quiz Experience** (`app/quiz/[id]/page.tsx`)
-   - Question display
-   - Timer
-   - Progress tracking
-   - Answer selection
-   - Navigation controls
-
-4. **Results Page** (`app/quiz/results/page.tsx`)
-   - Overall score
-   - Topic performance analysis
-   - Detailed question review
-   - Options to retry or return home
+For detailed information about application flow, routing, and page structure, please refer to the [technical documentation](./technical-documentation.md#application-flow).
 
 ## 🎨 UI/UX Features
 
@@ -124,29 +163,6 @@ interface QuizQuestion {
 - **Timer**: Visual countdown
 - **Charts**: For performance visualization
 
-## 🚀 Getting Started
-
-1. **Prerequisites**
-   - Node.js (v14 or higher)
-   - npm or yarn
-
-2. **Installation**
-   ```bash
-   git clone <repository-url>
-   cd passmedics
-   npm install
-   ```
-
-3. **Development**
-   ```bash
-   npm run dev
-   ```
-
-4. **Build**
-   ```bash
-   npm run build
-   ```
-
 ## 🔄 Future Improvements
 
 1. **Features**
@@ -162,4 +178,31 @@ interface QuizQuestion {
    - Offline support
    - Analytics integration
    - Testing implementation
+
+## 📋 Using the Clinical Case Simulator
+
+1. **Starting a Case**
+   - Browse available cases on the Clinical Cases page
+   - Select a case to begin
+   - Review patient information and vital signs
+
+2. **Working Through Stages**
+   - Read the stage question carefully
+   - Select clinical actions in your preferred order
+   - Actions can be deselected if needed
+   - Click "Finish Stage" when ready to check your answers
+   - Review feedback and retry if needed
+   - Proceed to next stage when complete
+
+3. **Completing Cases**
+   - Track your progress through the progress bar
+   - Monitor your score for each stage
+   - Review final results including:
+     - Overall score
+     - Time taken
+     - Stage-by-stage performance
+
+## 📧 Support
+
+For support, please email support@passmedics.com or open an issue in this repository.
 

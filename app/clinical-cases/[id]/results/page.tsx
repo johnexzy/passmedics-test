@@ -11,12 +11,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Link from "next/link";
 import { useHistory } from '@/context/HistoryContext';
 
+interface UserAction {
+  text: string;
+  order?: number;
+  isCorrect: boolean;
+}
+
 export default function CaseResultsPage() {
   const { id } = useParams();
   const router = useRouter();
   const [currentCase, setCurrentCase] = useState<ClinicalCase | null>(null);
   const [isAddToFlashcardsOpen, setIsAddToFlashcardsOpen] = useState(false);
   const [deckName, setDeckName] = useState('');
+  const [hasRecorded, setHasRecorded] = useState(false);
+  const [results, setResults] = useState<{
+    score: number;
+    completionTime: number;
+    stagesCompleted: number;
+  } | null>(null);
   const { dispatch: flashcardDispatch } = useFlashcards();
   const { dispatch: historyDispatch } = useHistory();
 
@@ -27,35 +39,76 @@ export default function CaseResultsPage() {
       return;
     }
     setCurrentCase(caseData);
+    
+    // Calculate score based on stored user actions
+    const userActions = JSON.parse(sessionStorage.getItem('userActions') || '[]') as UserAction[][];
+    let correctStages = 0;
+    
+    userActions.forEach((stageActions: UserAction[], stageIndex: number) => {
+      const stage = caseData.stages[stageIndex];
+      if (!stage) return;
+      
+      const correctActions = stage.actions
+        .filter(a => a.isCorrect)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+        
+      const selectedCorrectActions = stageActions
+        .filter(a => a.isCorrect)
+        .map((a, index) => ({ ...a, selectedOrder: index + 1 }));
+      
+      const isOrderCorrect = selectedCorrectActions.every((action, index) => 
+        action.order === index + 1
+      );
+      
+      if (selectedCorrectActions.length === correctActions.length && isOrderCorrect) {
+        correctStages++;
+      }
+    });
+    
+    const calculatedScore = Math.round((correctStages / caseData.stages.length) * 100);
+
     // Set default deck name
     setDeckName(`${caseData.title} - ${new Date().toLocaleDateString()}`);
 
-    // Record attempt in history
-    historyDispatch({
-      type: 'ADD_ATTEMPT',
-      payload: {
-        id: Math.random().toString(36).substring(2),
-        type: 'clinical-case',
-        title: caseData.title,
-        score: 0, // Assuming accuracy is not available in the current code
-        accuracy: 0, // Assuming accuracy is not available in the current code
-        timeSpent: 0, // Assuming timeSpent is not available in the current code
-        timestamp: new Date(),
-        details: {
-          category: caseData.category,
-          difficulty: caseData.difficulty,
-          totalQuestions: 0, // Assuming totalQuestions is not available in the current code
-          correctAnswers: 0, // Assuming correctAnswers is not available in the current code
+    // Record attempt in history with the calculated score
+    if (!hasRecorded) {
+      historyDispatch({
+        type: 'ADD_ATTEMPT',
+        payload: {
+          id: Math.random().toString(36).substring(2),
+          type: 'clinical-case',
+          title: caseData.title,
+          score: calculatedScore,
+          accuracy: calculatedScore,
+          timeSpent: 0, // We'll implement this later
+          timestamp: new Date(),
+          details: {
+            category: caseData.category,
+            difficulty: caseData.difficulty,
+            totalQuestions: caseData.stages.length,
+            correctAnswers: correctStages,
+          },
         },
-      },
-    });
+      });
+      setHasRecorded(true);
+    }
 
     // Clean up session storage
     return () => {
       sessionStorage.removeItem('caseStartTime');
       sessionStorage.removeItem('userActions');
     };
-  }, [id, router]);
+  }, [id, router, hasRecorded, historyDispatch]);
+
+  useEffect(() => {
+    // Load results from session storage
+    const savedResults = sessionStorage.getItem('caseResults');
+    if (savedResults) {
+      setResults(JSON.parse(savedResults));
+    } else {
+      router.push('/clinical-cases');
+    }
+  }, [router]);
 
   const handleAddToFlashcards = () => {
     if (!currentCase || !deckName.trim()) return;
@@ -109,13 +162,19 @@ export default function CaseResultsPage() {
     router.push('/flashcards');
   };
 
-  if (!currentCase) {
+  if (!currentCase || !results) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p>Loading results...</p>
       </div>
     );
   }
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,17 +205,17 @@ export default function CaseResultsPage() {
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-500">{0}%</div>
+            <div className="text-2xl font-bold text-blue-500">{results.score}%</div>
             <div className="text-sm text-gray-600">Overall Score</div>
           </Card>
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-green-500">
-              {0}m 0s
+              {formatTime(results.completionTime)}
             </div>
             <div className="text-sm text-gray-600">Completion Time</div>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-500">{currentCase.stages.length}</div>
+            <div className="text-2xl font-bold text-purple-500">{results.stagesCompleted}</div>
             <div className="text-sm text-gray-600">Stages Completed</div>
           </Card>
         </div>
@@ -210,10 +269,11 @@ export default function CaseResultsPage() {
         </Card>
 
         <div className="flex justify-center gap-4">
-          <Button variant="outline" asChild>
-            <Link href="/clinical-cases">
-              Back to Cases
-            </Link>
+          <Button variant="outline" onClick={() => router.push('/clinical-cases')}>
+            Try Another Case
+          </Button>
+          <Button onClick={() => router.push('/history')}>
+            View History
           </Button>
           <Button onClick={() => setIsAddToFlashcardsOpen(true)}>
             Add to Flashcards

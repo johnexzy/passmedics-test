@@ -126,25 +126,68 @@ const FlashcardContext = createContext<{
   dispatch: React.Dispatch<FlashcardAction>;
 } | null>(null);
 
-export function FlashcardProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(flashcardReducer, initialState);
+// Add this interface before the FlashcardProvider
+interface ParsedDeck extends Omit<Deck, 'createdAt' | 'lastStudied' | 'cards'> {
+  createdAt: string;
+  lastStudied?: string;
+  cards: Array<Omit<Flashcard, 'lastReviewed' | 'nextReview'> & {
+    lastReviewed?: string;
+    nextReview?: string;
+  }>;
+}
 
-  // Load state from localStorage on mount
-  useEffect(() => {
-    const savedState = localStorage.getItem('flashcardState');
-    if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState);
-        dispatch({ type: 'LOAD_STATE', payload: parsedState });
-      } catch (error) {
-        console.error('Failed to load flashcard state:', error);
+export function FlashcardProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(flashcardReducer, initialState, () => {
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('flashcardState');
+      if (savedState) {
+        try {
+          const parsedState = JSON.parse(savedState) as { decks: ParsedDeck[] };
+          const stateWithDates = {
+            ...parsedState,
+            decks: parsedState.decks.map(deck => ({
+              ...deck,
+              createdAt: new Date(deck.createdAt),
+              lastStudied: deck.lastStudied ? new Date(deck.lastStudied) : undefined,
+              cards: deck.cards.map(card => ({
+                ...card,
+                lastReviewed: card.lastReviewed ? new Date(card.lastReviewed) : undefined,
+                nextReview: card.nextReview ? new Date(card.nextReview) : undefined
+              }))
+            }))
+          };
+          return stateWithDates;
+        } catch (error) {
+          console.error('Failed to parse saved state:', error);
+          return initialState;
+        }
       }
     }
-  }, []);
+    return initialState;
+  });
 
   // Save state to localStorage on changes
   useEffect(() => {
-    localStorage.setItem('flashcardState', JSON.stringify(state));
+    if (state !== initialState) {
+      try {
+        const stateToSave = {
+          ...state,
+          decks: state.decks.map(deck => ({
+            ...deck,
+            createdAt: deck.createdAt.toISOString(),
+            lastStudied: deck.lastStudied?.toISOString(),
+            cards: deck.cards.map(card => ({
+              ...card,
+              lastReviewed: card.lastReviewed?.toISOString(),
+              nextReview: card.nextReview?.toISOString()
+            }))
+          }))
+        };
+        localStorage.setItem('flashcardState', JSON.stringify(stateToSave));
+      } catch (error) {
+        console.error('Failed to save flashcard state:', error);
+      }
+    }
   }, [state]);
 
   return (

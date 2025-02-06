@@ -5,17 +5,29 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { clinicalCases } from "@/data/clinical-cases";
-import { ClinicalCase } from "@/types/clinical-case";
+import { ClinicalCase, CaseAction } from "@/types/clinical-case";
 import { motion, AnimatePresence } from "framer-motion";
+
+interface Feedback {
+  type: 'success' | 'error';
+  message: string;
+}
+
+interface SelectedAction extends CaseAction {
+  selectionOrder: number;
+}
 
 export default function CaseSimulatorPage() {
   const { id } = useParams();
   const router = useRouter();
   const [currentCase, setCurrentCase] = useState<ClinicalCase | null>(null);
   const [currentStage, setCurrentStage] = useState(0);
-  const [selectedActions, setSelectedActions] = useState<string[]>([]);
+  const [selectedActions, setSelectedActions] = useState<SelectedAction[]>([]);
   const [timeLeft, setTimeLeft] = useState(60);
-  const [feedback, setFeedback] = useState<{ text: string; isCorrect: boolean } | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [isStageComplete, setIsStageComplete] = useState(false);
+  const [startTime] = useState<number>(Date.now());
+  const [stageScores, setStageScores] = useState<number[]>([]);
 
   useEffect(() => {
     const caseData = clinicalCases.find((c) => c.id === id);
@@ -24,6 +36,12 @@ export default function CaseSimulatorPage() {
       return;
     }
     setCurrentCase(caseData);
+    
+    // Initialize or load previous scores
+    const savedScores = sessionStorage.getItem('stageScores');
+    if (savedScores) {
+      setStageScores(JSON.parse(savedScores));
+    }
   }, [id, router]);
 
   useEffect(() => {
@@ -34,15 +52,80 @@ export default function CaseSimulatorPage() {
     return () => clearInterval(timer);
   }, [currentStage]);
 
-  const handleActionSelect = (action: { text: string; feedback: string; isCorrect: boolean }) => {
-    if (selectedActions.includes(action.text)) {
-      setSelectedActions(selectedActions.filter((a) => a !== action.text));
+  const calculateStageScore = (selectedActs: CaseAction[], correctActs: CaseAction[]) => {
+    const correctlySelected = selectedActs.filter(a => a.isCorrect).length;
+    const totalCorrect = correctActs.length;
+    return Math.round((correctlySelected / totalCorrect) * 100);
+  };
+
+  const handleActionSelect = (action: CaseAction) => {
+    if (!currentCase || isStageComplete) return;
+    
+    const actionExists = selectedActions.some(a => a.text === action.text);
+    
+    if (actionExists) {
+      // Remove the action and reorder remaining actions
+      const newSelectedActions = selectedActions
+        .filter(a => a.text !== action.text)
+        .map((a, index) => ({
+          ...a,
+          selectionOrder: index + 1
+        }));
+      setSelectedActions(newSelectedActions);
       setFeedback(null);
     } else {
-      setSelectedActions([...selectedActions, action.text]);
+      // Add the action with the next order number
+      const newSelectedActions = [
+        ...selectedActions,
+        { ...action, selectionOrder: selectedActions.length + 1 }
+      ];
+      setSelectedActions(newSelectedActions);
+      
+      // Store user actions in session storage
+      const userActions = JSON.parse(sessionStorage.getItem('userActions') || '[]');
+      userActions[currentStage] = newSelectedActions.map(a => ({ 
+        text: a.text, 
+        order: a.selectionOrder,
+        isCorrect: a.isCorrect 
+      }));
+      sessionStorage.setItem('userActions', JSON.stringify(userActions));
+    }
+  };
+
+  const handleFinishStage = () => {
+    if (!currentCase || !stage) return;
+
+    setIsStageComplete(true);
+    
+    // Check if all correct actions are selected in the right order
+    const correctActions = stage.actions
+      .filter(a => a.isCorrect)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+    const selectedCorrectActions = selectedActions
+      .filter(a => a.isCorrect)
+      .map((a, index) => ({ ...a, selectedOrder: index + 1 }));
+
+    const isOrderCorrect = selectedCorrectActions.every((action, index) => 
+      action.order === index + 1
+    );
+
+    // Calculate and save stage score
+    const stageScore = calculateStageScore(selectedActions, correctActions);
+    const newStageScores = [...stageScores];
+    newStageScores[currentStage] = stageScore;
+    setStageScores(newStageScores);
+    sessionStorage.setItem('stageScores', JSON.stringify(newStageScores));
+
+    if (selectedActions.length === correctActions.length && isOrderCorrect) {
       setFeedback({
-        text: action.feedback,
-        isCorrect: action.isCorrect
+        type: 'success',
+        message: 'Correct sequence! Well done.'
+      });
+    } else {
+      setFeedback({
+        type: 'error',
+        message: 'Check your selected actions and their order.'
       });
     }
   };
@@ -55,7 +138,20 @@ export default function CaseSimulatorPage() {
       setSelectedActions([]);
       setTimeLeft(60);
       setFeedback(null);
+      setIsStageComplete(false);
     } else {
+      // Calculate final results
+      const endTime = Date.now();
+      const totalTime = Math.floor((endTime - startTime) / 1000); // in seconds
+      const overallScore = Math.round(stageScores.reduce((acc, score) => acc + score, 0) / stageScores.length);
+      
+      // Store results in session storage
+      sessionStorage.setItem('caseResults', JSON.stringify({
+        score: overallScore,
+        completionTime: totalTime,
+        stagesCompleted: currentStage + 1
+      }));
+      
       // Navigate to results page
       router.push(`/clinical-cases/${id}/results`);
     }
@@ -79,11 +175,14 @@ export default function CaseSimulatorPage() {
         <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
           <div>Stage {currentStage + 1} of {currentCase.stages.length}</div>
           <div>{progress.toFixed(0)}% Complete</div>
-          <div className="flex items-center gap-1">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {timeLeft}s left
+          <div className="flex items-center gap-4">
+            <div>Score: {stageScores[currentStage] || 0}%</div>
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {timeLeft}s left
+            </div>
           </div>
         </div>
         <div className="w-full h-2 bg-gray-100 rounded-full">
@@ -153,68 +252,88 @@ export default function CaseSimulatorPage() {
         </Card>
 
         {/* Question and Actions */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">{stage.question}</h2>
-          <div className="space-y-2">
-            {stage.actions.map((action) => (
-              <motion.button
-                key={action.text}
-                onClick={() => handleActionSelect(action)}
-                whileTap={{ scale: 0.98 }}
-                animate={{
-                  scale: selectedActions.includes(action.text) ? [1, 1.02, 1] : 1,
-                  transition: {
-                    duration: 0.3,
-                    type: "spring",
-                    bounce: 0.4
-                  }
-                }}
-                className={`w-full p-4 text-left rounded-lg border transition-colors ${
-                  selectedActions.includes(action.text)
-                    ? "border-primary bg-primary/5"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-800">
-                    {action.type}
-                  </span>
-                  {action.text}
-                </div>
-              </motion.button>
-            ))}
+        <Card className="mb-6">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold mb-4">{stage.question}</h2>
+            <div className="space-y-3">
+              {stage.actions.map((action) => {
+                const selectedAction = selectedActions.find(a => a.text === action.text);
+                return (
+                  <button
+                    key={action.text}
+                    onClick={() => handleActionSelect(action)}
+                    className={`w-full p-4 rounded-lg border transition-colors relative ${
+                      selectedAction
+                        ? "bg-primary/10 border-primary"
+                        : "hover:bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        selectedAction
+                          ? "bg-primary text-white"
+                          : "bg-gray-100"
+                      }`}>
+                        {selectedAction ? (
+                          <span className="font-semibold">{selectedAction.selectionOrder}</span>
+                        ) : (
+                          action.type === "Examination" ? (
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          ) : action.type === "Treatment" ? (
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                          )
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">{action.text}</div>
+                        <div className="text-sm text-gray-600">{action.type}</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+        </Card>
 
-          {/* Feedback Animation */}
-          <AnimatePresence mode="wait">
-            {feedback && (
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 50 }}
-                transition={{ type: "spring", bounce: 0.4, duration: 0.6 }}
-                className={`p-4 rounded-lg mt-4 ${
-                  feedback.isCorrect ? "bg-green-50 text-green-800" : "bg-blue-50 text-blue-800"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    {feedback.isCorrect ? (
-                      <svg className="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
-                  <p className="text-sm">{feedback.text}</p>
+        {/* Feedback Animation */}
+        <AnimatePresence mode="wait">
+          {feedback && (
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ type: "spring", bounce: 0.4, duration: 0.6 }}
+              className={`p-4 rounded-lg mt-4 ${
+                feedback.type === 'success' ? "bg-green-50 text-green-800" : "bg-blue-50 text-blue-800"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  {feedback.type === 'success' ? (
+                    <svg className="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                <p className="text-sm">{feedback.message}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Footer Navigation */}
         <div className="mt-8 flex items-center justify-between">
@@ -224,14 +343,37 @@ export default function CaseSimulatorPage() {
             </svg>
             Exit Case
           </Button>
-          <Button
-            onClick={handleNextStage}
-            disabled={selectedActions.length === 0}
-          >
-            {currentStage < currentCase.stages.length - 1
-              ? "Next Stage"
-              : "Complete Case"}
-          </Button>
+          {!isStageComplete ? (
+            <Button
+              onClick={handleFinishStage}
+              disabled={selectedActions.length === 0}
+            >
+              Finish Stage
+            </Button>
+          ) : (
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedActions([]);
+                  setFeedback(null);
+                  setIsStageComplete(false);
+                }}
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Retry
+              </Button>
+              <Button
+                onClick={handleNextStage}
+              >
+                {currentStage < currentCase.stages.length - 1
+                  ? "Next Stage"
+                  : "Complete Case"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

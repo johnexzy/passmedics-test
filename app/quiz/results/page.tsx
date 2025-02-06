@@ -6,20 +6,93 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuiz } from "@/context/QuizContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFlashcards } from '@/context/FlashcardContext';
+import { useHistory } from '@/context/HistoryContext';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Header from "@/components/Header";
 
 export default function QuizResults() {
   const router = useRouter();
   const { state: quizState, dispatch: quizDispatch } = useQuiz();
   const { dispatch: flashcardDispatch } = useFlashcards();
+  const { dispatch: historyDispatch } = useHistory();
+  const [hasRecorded, setHasRecorded] = useState(false);
+  const [isAddToFlashcardsOpen, setIsAddToFlashcardsOpen] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<{
+    question: string;
+    selectedAnswer: string;
+    correctAnswer: string;
+    explanation: string;
+  } | null>(null);
+  const [deckName, setDeckName] = useState('');
+
+  // Calculate overall score
+  const calculateOverallScore = () => Math.round(
+    (quizState.answers.filter((answer, index) => {
+      const question = quizState.questions[index];
+      return question?.correctAnswer === answer.selectedOption;
+    }).length / quizState.answers.length) * 100
+  );
 
   useEffect(() => {
     // Redirect if no quiz results
     if (!quizState.isComplete || quizState.questions.length === 0) {
       router.push('/quiz');
+      return;
     }
-  }, [quizState.isComplete, quizState.questions.length, router]);
+
+    // Record the attempt in history when results are first viewed
+    if (!hasRecorded) {
+      const score = calculateOverallScore();
+
+      historyDispatch({
+        type: 'ADD_ATTEMPT',
+        payload: {
+          id: Math.random().toString(36).substring(2),
+          type: 'quiz',
+          title: 'Medical Quiz',
+          score: score,
+          accuracy: score,
+          timeSpent: quizState.questions.length * 60, // Approximate time spent
+          timestamp: new Date(),
+          details: {
+            totalQuestions: quizState.questions.length,
+            correctAnswers: quizState.answers.filter((answer, index) => 
+              quizState.questions[index]?.correctAnswer === answer.selectedOption
+            ).length,
+            questions: quizState.questions.map((question, index) => {
+              const answer = quizState.answers[index];
+              const selectedOption = question.options.find(opt => opt.id === answer?.selectedOption);
+              const correctOption = question.options.find(opt => opt.id === question.correctAnswer);
+              return {
+                category: question.category,
+                difficulty: question.difficulty,
+                question: question.question,
+                selectedAnswer: selectedOption?.text || 'Unanswered',
+                correctAnswer: correctOption?.text || '',
+                explanation: question.explanation,
+                isCorrect: question.correctAnswer === answer?.selectedOption
+              };
+            })
+          },
+        },
+      });
+      setHasRecorded(true);
+    }
+
+    // Only cleanup when navigating away from results page
+    const handleRouteChange = () => {
+      if (!window.location.pathname.includes('/results')) {
+        quizDispatch({ type: 'RESET_QUIZ' });
+      }
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [quizState.isComplete, quizState.questions.length, quizState.answers, quizState.questions, router, quizDispatch, historyDispatch, hasRecorded]);
 
   // Calculate topic performance
   const calculateTopicPerformance = () => {
@@ -46,12 +119,7 @@ export default function QuizResults() {
   };
 
   const topicPerformance = calculateTopicPerformance();
-  const overallScore = Math.round(
-    (quizState.answers.filter((answer, index) => {
-      const question = quizState.questions[index];
-      return question?.correctAnswer === answer.selectedOption;
-    }).length / quizState.answers.length) * 100
-  );
+  const overallScore = calculateOverallScore();
 
   const handleTryAgain = () => {
     quizDispatch({ type: 'RESET_QUIZ' });
@@ -66,7 +134,7 @@ export default function QuizResults() {
     flashcardDispatch({
       type: 'CREATE_DECK',
       payload: {
-        id: newDeckId, // Pass the ID to the create action
+        id: newDeckId,
         name: `Quiz Results - ${new Date().toLocaleDateString()}`,
         description: `Quiz results with ${quizState.questions.length} questions. Score: ${overallScore}%`,
       },
@@ -94,6 +162,39 @@ export default function QuizResults() {
     router.push('/flashcards');
   };
 
+  const handleAddQuestionToFlashcards = () => {
+    if (!selectedQuestion || !deckName.trim()) return;
+
+    // Generate deck ID
+    const newDeckId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+    // Create a new deck
+    flashcardDispatch({
+      type: 'CREATE_DECK',
+      payload: {
+        id: newDeckId,
+        name: deckName.trim(),
+        description: `Question from medical quiz on ${new Date().toLocaleDateString()}`,
+      },
+    });
+
+    // Add the question as a flashcard
+    flashcardDispatch({
+      type: 'ADD_CARD',
+      payload: {
+        deckId: newDeckId,
+        card: {
+          front: `Q: ${selectedQuestion.question}\n\nYour Answer: ${selectedQuestion.selectedAnswer}\nCorrect Answer: ${selectedQuestion.correctAnswer}`,
+          back: selectedQuestion.explanation,
+        },
+      },
+    });
+
+    setIsAddToFlashcardsOpen(false);
+    setSelectedQuestion(null);
+    router.push('/flashcards');
+  };
+
   if (!quizState.isComplete || quizState.questions.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -109,9 +210,7 @@ export default function QuizResults() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="flex justify-between items-center p-4">
-        <Link href="/" className="text-xl font-bold text-primary">PassMedics</Link>
-      </header>
+      <Header />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Overall Score */}
@@ -233,7 +332,16 @@ export default function QuizResults() {
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onClick={() => window.open("https://passmedics.com/flashcards", "_blank")}
+                  onClick={() => {
+                    setSelectedQuestion({
+                      question: question.question,
+                      selectedAnswer: selectedOption?.text || 'Unanswered',
+                      correctAnswer: correctOption?.text || '',
+                      explanation: question.explanation,
+                    });
+                    setDeckName(`Medical Quiz - ${new Date().toLocaleDateString()}`);
+                    setIsAddToFlashcardsOpen(true);
+                  }}
                 >
                   Add to Flashcards
                 </Button>
@@ -241,6 +349,44 @@ export default function QuizResults() {
             );
           })}
         </div>
+
+        {/* Add to Flashcards Dialog */}
+        <Dialog open={isAddToFlashcardsOpen} onOpenChange={setIsAddToFlashcardsOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add to Flashcards</DialogTitle>
+              <DialogDescription>
+                Create a new flashcard deck from this question. The card will include the question, your answer, the correct answer, and the explanation.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="deckName" className="block text-sm font-medium text-gray-700">
+                  Deck Name
+                </label>
+                <input
+                  id="deckName"
+                  type="text"
+                  value={deckName}
+                  onChange={(e) => setDeckName(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Enter deck name"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => {
+                  setIsAddToFlashcardsOpen(false);
+                  setSelectedQuestion(null);
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddQuestionToFlashcards}>
+                  Create Flashcard
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Actions */}
         <div className="flex justify-center gap-4 mt-12">

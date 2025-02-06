@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { QuizQuestion } from '@/data/quizzes';
 
 interface Answer {
@@ -20,7 +20,8 @@ type QuizAction =
   | { type: 'ANSWER_QUESTION'; answer: Answer }
   | { type: 'NEXT_QUESTION' }
   | { type: 'COMPLETE_QUIZ' }
-  | { type: 'RESET_QUIZ' };
+  | { type: 'RESET_QUIZ' }
+  | { type: 'LOAD_STATE'; payload: QuizState }
 
 const initialState: QuizState = {
   questions: [],
@@ -55,7 +56,15 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
         isComplete: true,
       };
     case 'RESET_QUIZ':
+      localStorage.removeItem('quizState');
       return initialState;
+    case 'LOAD_STATE':
+      // Only load incomplete quizzes or completed quizzes that haven't been viewed
+      if (action.payload.isComplete && !window.location.pathname.includes('/results')) {
+        localStorage.removeItem('quizState');
+        return initialState;
+      }
+      return action.payload;
     default:
       return state;
   }
@@ -68,6 +77,24 @@ const QuizContext = createContext<{
 
 export function QuizProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(quizReducer, initialState);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('quizState');
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        dispatch({ type: 'LOAD_STATE', payload: parsedState });
+      } catch (error) {
+        console.error('Failed to load quiz state:', error);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage on changes
+  useEffect(() => {
+    localStorage.setItem('quizState', JSON.stringify(state));
+  }, [state]);
 
   return (
     <QuizContext.Provider value={{ state, dispatch }}>
