@@ -1,8 +1,21 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function QuizPage() {
+  const router = useRouter();
+
+  const handleStartQuiz = () => {
+    router.push("/quiz/1"); // Start with the first quiz
+  };
+
+  const handleTryClinicalCases = () => {
+    router.push("/clinical-cases");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -70,8 +83,12 @@ export default function QuizPage() {
 
         <div className="flex flex-col items-center gap-6">
           <div className="flex gap-4">
-            <Button size="lg" className="px-8">Start Quiz</Button>
-            <Button size="lg" variant="outline" className="px-8">Try Clinical Cases</Button>
+            <Button size="lg" className="px-8" onClick={handleStartQuiz}>
+              Start Quiz
+            </Button>
+            <Button size="lg" variant="outline" className="px-8" onClick={handleTryClinicalCases}>
+              Try Clinical Cases
+            </Button>
           </div>
           <p className="text-gray-600 text-sm">
             Want a more immersive experience? Try our clinical case simulations.
