@@ -24,8 +24,8 @@ export default function Home() {
           intelligent study tools.
         </p>
         <div className="flex justify-center gap-4">
-          <Button size="lg">Practice Quiz</Button>
-          <Button variant="outline" size="lg">
+          <Button size="lg" href="/quiz">Practice Quiz</Button>
+          <Button variant="outline" size="lg" href="/clinical-cases">
             Clinical Cases
           </Button>
         </div>
