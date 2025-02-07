@@ -163,22 +163,6 @@ For detailed information about application flow, routing, and page structure, pl
 - **Timer**: Visual countdown
 - **Charts**: For performance visualization
 
-## 🔄 Future Improvements
-
-1. **Features**
-   - User authentication and profiles
-   - Progress tracking across multiple quizzes
-   - More interactive clinical cases
-   - Spaced repetition system
-   - Peer comparison statistics
-
-2. **Technical**
-   - API integration for dynamic questions
-   - Performance optimization
-   - Offline support
-   - Analytics integration
-   - Testing implementation
-
 ## 📋 Using the Clinical Case Simulator
 
 1. **Starting a Case**
