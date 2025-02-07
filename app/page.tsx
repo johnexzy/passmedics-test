@@ -52,18 +52,18 @@ export default function Home() {
               </div>
             </Button>
           </div>
-          <div className="flex justify-center gap-8 mt-8">
-            <div className="flex items-center gap-2">
+          <div className="flex  justify-center gap-4 md:gap-8 mt-8">
+            <div className="flex items-center gap-1.5">
               <Users className="w-5 h-5" />
               <span className="font-semibold">10K+</span>
               <span className="text-gray-600">Users</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <BookOpen className="w-5 h-5" />
               <span className="font-semibold">50K+</span>
               <span className="text-gray-600">Questions</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Star className="w-5 h-5" />
               <span className="font-semibold">4.9/5</span>
               <span className="text-gray-600">Rating</span>
