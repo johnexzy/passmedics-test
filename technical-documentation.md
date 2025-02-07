@@ -3,7 +3,7 @@
 ## System Architecture
 
 ### Tech Stack
-- **Frontend Framework**: Next.js 14 with TypeScript
+- **Frontend Framework**: Next.js 15 with TypeScript
 - **Styling**: Tailwind CSS with CSS variables for theming
 - **State Management**: React Context API with TypeScript reducers
 - **UI Components**: Custom components built with Radix UI primitives
