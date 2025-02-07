@@ -4,7 +4,9 @@ import React from "react";
 function Header() {
   return (
     <header className="max-w-7xl mx-auto flex justify-between items-center p-4 ">
-      <div className="text-xl font-bold text-primary">PassMedics</div>
+      <div className="text-xl font-bold text-primary">
+        <Link href="/">PassMedics</Link>
+      </div>
       <div className="flex items-center gap-4">
         <nav className="flex items-center gap-4 mr-4">
           <Link
