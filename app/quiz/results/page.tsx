@@ -17,14 +17,8 @@ export default function QuizResults() {
   const { state: quizState, dispatch: quizDispatch } = useQuiz();
   const { dispatch: flashcardDispatch } = useFlashcards();
   const { dispatch: historyDispatch } = useHistory();
-  const [hasRecorded, setHasRecorded] = useState(false);
-  const [isAddToFlashcardsOpen, setIsAddToFlashcardsOpen] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] = useState<{
-    question: string;
-    selectedAnswer: string;
-    correctAnswer: string;
-    explanation: string;
-  } | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<number | null>(null);
+  const [isAddingToFlashcards, setIsAddingToFlashcards] = useState(false);
   const [deckName, setDeckName] = useState('');
 
   // Calculate overall score
@@ -36,50 +30,53 @@ export default function QuizResults() {
   );
 
   useEffect(() => {
-    // Redirect if no quiz results
     if (!quizState.isComplete || quizState.questions.length === 0) {
       router.push('/quiz');
       return;
     }
 
-    // Record the attempt in history when results are first viewed
-    if (!hasRecorded) {
-      const score = calculateOverallScore();
+    // Get the total time from the last answer's timeSpent
+    const totalTime = quizState.answers[quizState.answers.length - 1]?.timeSpent || 0;
 
-      historyDispatch({
-        type: 'ADD_ATTEMPT',
-        payload: {
-          id: Math.random().toString(36).substring(2),
-          type: 'quiz',
-          title: 'Medical Quiz',
-          score: score,
-          accuracy: score,
-          timeSpent: quizState.questions.length * 60, // Approximate time spent
-          timestamp: new Date(),
-          details: {
-            totalQuestions: quizState.questions.length,
-            correctAnswers: quizState.answers.filter((answer, index) => 
-              quizState.questions[index]?.correctAnswer === answer.selectedOption
-            ).length,
-            questions: quizState.questions.map((question, index) => {
-              const answer = quizState.answers[index];
-              const selectedOption = question.options.find(opt => opt.id === answer?.selectedOption);
-              const correctOption = question.options.find(opt => opt.id === question.correctAnswer);
-              return {
-                category: question.category,
-                difficulty: question.difficulty,
-                question: question.question,
-                selectedAnswer: selectedOption?.text || 'Unanswered',
-                correctAnswer: correctOption?.text || '',
-                explanation: question.explanation,
-                isCorrect: question.correctAnswer === answer?.selectedOption
-              };
-            })
-          },
+    // Calculate score and store in history
+    const correctAnswers = quizState.answers.filter(
+      (answer) => {
+        const question = quizState.questions.find((q) => q.id === answer.questionId);
+        return question?.correctAnswer === answer.selectedOption;
+      }
+    ).length;
+
+    const score = Math.round((correctAnswers / quizState.questions.length) * 100);
+    const accuracy = Math.round((correctAnswers / quizState.questions.length) * 100);
+
+    historyDispatch({
+      type: 'ADD_ATTEMPT',
+      payload: {
+        id: Math.random().toString(36).substring(2),
+        type: 'quiz',
+        title: 'Medical Knowledge Quiz',
+        score,
+        accuracy,
+        timeSpent: totalTime,
+        timestamp: new Date(),
+        details: {
+          totalQuestions: quizState.questions.length,
+          correctAnswers,
+          questions: quizState.questions.map((question, index) => {
+            const answer = quizState.answers[index];
+            return {
+              category: question.category,
+              difficulty: question.difficulty,
+              question: question.question,
+              selectedAnswer: answer.selectedOption,
+              correctAnswer: question.correctAnswer,
+              explanation: question.explanation,
+              isCorrect: answer.selectedOption === question.correctAnswer,
+            };
+          }),
         },
-      });
-      setHasRecorded(true);
-    }
+      },
+    });
 
     // Only cleanup when navigating away from results page
     const handleRouteChange = () => {
@@ -92,7 +89,7 @@ export default function QuizResults() {
     return () => {
       window.removeEventListener('popstate', handleRouteChange);
     };
-  }, [quizState.isComplete, quizState.questions.length, quizState.answers, quizState.questions, router, quizDispatch, historyDispatch, hasRecorded]);
+  }, [quizState, router, historyDispatch, quizDispatch]);
 
   // Calculate topic performance
   const calculateTopicPerformance = () => {
@@ -184,13 +181,13 @@ export default function QuizResults() {
       payload: {
         deckId: newDeckId,
         card: {
-          front: `Q: ${selectedQuestion.question}\n\nYour Answer: ${selectedQuestion.selectedAnswer}\nCorrect Answer: ${selectedQuestion.correctAnswer}`,
-          back: selectedQuestion.explanation,
+          front: `Q: ${quizState.questions[selectedQuestion].question}\n\nYour Answer: ${quizState.answers[selectedQuestion].selectedOption}\nCorrect Answer: ${quizState.questions[selectedQuestion].correctAnswer}`,
+          back: quizState.questions[selectedQuestion].explanation,
         },
       },
     });
 
-    setIsAddToFlashcardsOpen(false);
+    setIsAddingToFlashcards(false);
     setSelectedQuestion(null);
     router.push('/flashcards');
   };
@@ -333,14 +330,9 @@ export default function QuizResults() {
                   variant="outline"
                   className="mt-4"
                   onClick={() => {
-                    setSelectedQuestion({
-                      question: question.question,
-                      selectedAnswer: selectedOption?.text || 'Unanswered',
-                      correctAnswer: correctOption?.text || '',
-                      explanation: question.explanation,
-                    });
+                    setSelectedQuestion(index);
                     setDeckName(`Medical Quiz - ${new Date().toLocaleDateString()}`);
-                    setIsAddToFlashcardsOpen(true);
+                    setIsAddingToFlashcards(true);
                   }}
                 >
                   Add to Flashcards
@@ -351,7 +343,7 @@ export default function QuizResults() {
         </div>
 
         {/* Add to Flashcards Dialog */}
-        <Dialog open={isAddToFlashcardsOpen} onOpenChange={setIsAddToFlashcardsOpen}>
+        <Dialog open={isAddingToFlashcards} onOpenChange={setIsAddingToFlashcards}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add to Flashcards</DialogTitle>
@@ -375,7 +367,7 @@ export default function QuizResults() {
               </div>
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => {
-                  setIsAddToFlashcardsOpen(false);
+                  setIsAddingToFlashcards(false);
                   setSelectedQuestion(null);
                 }}>
                   Cancel

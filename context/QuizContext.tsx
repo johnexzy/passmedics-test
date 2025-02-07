@@ -6,6 +6,7 @@ import { QuizQuestion } from '@/data/quizzes';
 interface Answer {
   questionId: string;
   selectedOption: string;
+  timeSpent: number;  
 }
 
 interface QuizState {

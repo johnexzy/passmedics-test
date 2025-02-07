@@ -12,7 +12,7 @@ export default function QuizExperience() {
   const router = useRouter();
   const { state, dispatch } = useQuiz();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState(60);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   // Initialize quiz with randomized questions
@@ -34,22 +34,16 @@ export default function QuizExperience() {
   const currentQuestion = state.questions[state.currentQuestionIndex];
   const progress = ((state.currentQuestionIndex + 1) / state.questions.length) * 100;
 
-  // Timer effect
+  // Timer effect - counts up from 0
   useEffect(() => {
-    if (!currentQuestion) return;
+    if (!currentQuestion || state.isComplete) return;
 
     const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 0) {
-          handleNextQuestion();
-          return 60;
-        }
-        return prev - 1;
-      });
+      setElapsedTime((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [state.currentQuestionIndex, currentQuestion]);
+  }, [currentQuestion, state.isComplete]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -63,7 +57,7 @@ export default function QuizExperience() {
 
   const handleNextQuestion = () => {
     try {
-      if (!selectedOption && timeRemaining > 0) return;
+      if (!selectedOption) return;
       if (!currentQuestion) return;
 
       // Save answer
@@ -71,14 +65,14 @@ export default function QuizExperience() {
         type: 'ANSWER_QUESTION',
         answer: {
           questionId: currentQuestion.id,
-          selectedOption: selectedOption || 'unanswered'
+          selectedOption: selectedOption,
+          timeSpent: elapsedTime // Store total elapsed time
         }
       });
 
       if (state.currentQuestionIndex < state.questions.length - 1) {
         dispatch({ type: 'NEXT_QUESTION' });
         setSelectedOption(null);
-        setTimeRemaining(60);
       } else {
         dispatch({ type: 'COMPLETE_QUIZ' });
         router.push("/quiz/results");
@@ -138,7 +132,7 @@ export default function QuizExperience() {
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{formatTime(timeRemaining)}</span>
+            <span>{formatTime(elapsedTime)}</span>
           </div>
         </div>
 
